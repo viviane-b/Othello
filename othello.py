@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import random
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -9,6 +8,7 @@ import os
 EMPTY = 0
 BLACK = 1
 WHITE = -1
+DEPTH = 3  # Profondeur du Minimax
 
 # 📌 Chemin du fichier où sauvegarder les scores
 LEADERBOARD_FILE = "leaderboard.csv"
@@ -80,6 +80,48 @@ class Othello:
     def is_game_over(self):
         return not self.get_valid_moves(BLACK) and not self.get_valid_moves(WHITE)
 
+# Minimax AI
+def evaluate_board(board):
+    """Basic evaluation function: counts the number of pieces per player."""
+    return np.sum(board == WHITE) - np.sum(board == BLACK)
+
+def minimax(board, depth, maximizing, player):
+    """Minimax AI with depth limit."""
+    game = Othello()
+    game.board = board.copy()
+
+    if depth == 0 or game.is_game_over():
+        return evaluate_board(game.board), None
+
+    valid_moves = game.get_valid_moves(player)
+    best_move = None
+
+    if maximizing:
+        max_eval = float("-inf")
+        for move in valid_moves:
+            new_board = game.board.copy()
+            game.apply_move(move, player)
+            eval_score, _ = minimax(new_board, depth - 1, False, -player)
+            if eval_score > max_eval:
+                max_eval = eval_score
+                best_move = move
+        return max_eval, best_move
+    else:
+        min_eval = float("inf")
+        for move in valid_moves:
+            new_board = game.board.copy()
+            game.apply_move(move, player)
+            eval_score, _ = minimax(new_board, depth - 1, True, -player)
+            if eval_score < min_eval:
+                min_eval = eval_score
+                best_move = move
+        return min_eval, best_move
+
+def minimax_ai(board, player):
+    """AI wrapper for Minimax with depth=3"""
+    _, best_move = minimax(board, DEPTH, True, player)
+    return best_move
+
 # Affichage du plateau
 def draw_board(board):
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -122,7 +164,7 @@ if student_id and user_code:
             user_ai = globals()["user_ai"]
             st.success(f"Votre IA a été enregistrée pour l'étudiant {student_id} !")
 
-            if st.button("Lancer la partie IA vs IA"):
+            if st.button("Lancer la partie IA vs Minimax AI"):
                 game = Othello()
 
                 while not game.is_game_over():
@@ -131,7 +173,8 @@ if student_id and user_code:
                         game.current_player = -game.current_player
                         continue
 
-                    current_ai = user_ai if game.current_player == BLACK else lambda b, p: random.choice(valid_moves)
+                    # User AI plays as BLACK, Minimax AI as WHITE
+                    current_ai = user_ai if game.current_player == BLACK else minimax_ai
                     move = current_ai(game.board, game.current_player)
 
                     if move:
