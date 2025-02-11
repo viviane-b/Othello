@@ -3,15 +3,29 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
 
 # Définition des constantes
 EMPTY = 0
 BLACK = 1
 WHITE = -1
 
-# Base de données pour stocker les scores
+# 📌 Chemin du fichier où sauvegarder les scores
+LEADERBOARD_FILE = "leaderboard.csv"
+
+# 📌 Charger le leaderboard depuis un fichier CSV au démarrage
+def load_leaderboard():
+    if os.path.exists(LEADERBOARD_FILE):
+        return pd.read_csv(LEADERBOARD_FILE)
+    return pd.DataFrame(columns=["ID", "Score"])
+
+# 📌 Sauvegarder le leaderboard dans un fichier CSV
+def save_leaderboard(df):
+    df.to_csv(LEADERBOARD_FILE, index=False)
+
+# Charger les scores existants au démarrage
 if "leaderboard" not in st.session_state:
-    st.session_state.leaderboard = pd.DataFrame(columns=["ID", "Score"])
+    st.session_state.leaderboard = load_leaderboard()
 
 # Classe du jeu Othello
 class Othello:
@@ -66,23 +80,21 @@ class Othello:
     def is_game_over(self):
         return not self.get_valid_moves(BLACK) and not self.get_valid_moves(WHITE)
 
-# Affichage du plateau avec correction des couleurs
+# Affichage du plateau
 def draw_board(board):
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_facecolor("#006400")  # Fond vert foncé
 
-    # Affichage des lignes de la grille
     for x in range(9):
         ax.plot([x-0.5, x-0.5], [-0.5, 7.5], color='black', linewidth=2)
         ax.plot([-0.5, 7.5], [x-0.5, x-0.5], color='black', linewidth=2)
 
-    # Affichage des pièces
     for row in range(8):
         for col in range(8):
             if board[row, col] == BLACK:
                 ax.add_patch(plt.Circle((col, row), 0.4, color='black', zorder=2))
             elif board[row, col] == WHITE:
-                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))  # ✅ Ajout du contour noir
+                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -110,12 +122,10 @@ if student_id and user_code:
             user_ai = globals()["user_ai"]
             st.success(f"Votre IA a été enregistrée pour l'étudiant {student_id} !")
 
-            # Lancer une partie IA vs IA
             if st.button("Lancer la partie IA vs IA"):
                 game = Othello()
 
                 while not game.is_game_over():
-                    # ✅ Vérifier qu'il y a des coups valides avant d'utiliser random.choice()
                     valid_moves = game.get_valid_moves(game.current_player)
                     if not valid_moves:
                         game.current_player = -game.current_player
@@ -130,11 +140,10 @@ if student_id and user_code:
 
                 st.write(f"🎉 Partie terminée pour l'étudiant {student_id} !")
 
-                # Calcul du score (différence de pions)
                 final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
                 st.write(f"Votre score : {final_score}")
 
-                # Mise à jour du leaderboard **uniquement si le score est meilleur**
+                # 🔥 Mise à jour du leaderboard
                 existing_entry = st.session_state.leaderboard[st.session_state.leaderboard["ID"] == student_id]
 
                 if not existing_entry.empty:
@@ -145,14 +154,14 @@ if student_id and user_code:
                     new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
                     st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
 
-                # Trier le leaderboard
+                # Trier et sauvegarder
                 st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by="Score", ascending=False)
+                save_leaderboard(st.session_state.leaderboard)
 
-                # Afficher le plateau final
                 draw_board(game.board)
 
         else:
-            st.error("⚠️ Votre code doit définir une fonction `user_ai(board, player)`.")  # Vérification
+            st.error("⚠️ Votre code doit définir une fonction `user_ai(board, player)`.")  
 
     except Exception as e:
         st.error(f"❌ Erreur dans votre code : {e}")
