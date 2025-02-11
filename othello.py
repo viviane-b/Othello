@@ -1,11 +1,17 @@
 import streamlit as st
 import numpy as np
 import random
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # Définition des constantes
 EMPTY = 0
 BLACK = 1
 WHITE = -1
+
+# Base de données pour stocker les scores
+if "leaderboard" not in st.session_state:
+    st.session_state.leaderboard = pd.DataFrame(columns=["ID", "Score"])
 
 # Classe du jeu Othello
 class Othello:
@@ -40,8 +46,10 @@ class Othello:
         return False
 
     def apply_move(self, move, player):
+        if move is None:
+            return
         row, col = move
-        self.board[row, col] = player
+        self.board[row, col] = player  # Place la pièce
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1),
                       (0, 1), (1, -1), (1, 0), (1, 1)]
         for dr, dc in directions:
@@ -53,46 +61,93 @@ class Othello:
                 c += dc
             if flipped and 0 <= r < 8 and 0 <= c < 8 and self.board[r, c] == player:
                 for fr, fc in flipped:
-                    self.board[fr, fc] = player
+                    self.board[fr, fc] = player  # Retourne les pièces
 
-# Fonction IA simple (Minimax aléatoire)
-def ai_move(board, player):
-    valid_moves = [move for move in Othello().get_valid_moves(player)]
-    return random.choice(valid_moves) if valid_moves else None
+    def is_game_over(self):
+        return not self.get_valid_moves(BLACK) and not self.get_valid_moves(WHITE)
+
+# Affichage du plateau avec correction des couleurs
+def draw_board(board):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.set_facecolor("#006400")  # Fond vert foncé
+
+    # Affichage des lignes de la grille
+    for x in range(9):
+        ax.plot([x-0.5, x-0.5], [-0.5, 7.5], color='black', linewidth=2)
+        ax.plot([-0.5, 7.5], [x-0.5, x-0.5], color='black', linewidth=2)
+
+    # Affichage des pièces
+    for row in range(8):
+        for col in range(8):
+            if board[row, col] == BLACK:
+                ax.add_patch(plt.Circle((col, row), 0.4, color='black', zorder=2))
+            elif board[row, col] == WHITE:
+                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))  # ✅ Ajout du contour noir
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlim(-0.5, 7.5)
+    ax.set_ylim(7.5, -0.5)
+
+    st.pyplot(fig)
 
 # Interface Streamlit
-st.title("Othello - Jouez contre l'IA")
+st.title("🏆 Othello - Compétition des Étudiants !")
 
-game = Othello()
+# Formulaire pour entrer l'ID étudiant
+student_id = st.text_input("Entrez votre ID étudiant")
 
-# Affichage du plateau
-st.write("Plateau de jeu:")
-st.write(game.board)
+st.write("Soumettez votre propre IA sous forme de fonction Python.")
 
-# Choix de mode
-mode = st.selectbox("Mode de jeu", ["Humain vs IA", "IA vs IA"])
+# Champ de soumission de code
+user_code = st.text_area("Entrez votre code Python ici :", height=200)
 
-if mode == "Humain vs IA":
-    row = st.number_input("Choisissez une ligne (0-7)", min_value=0, max_value=7, step=1)
-    col = st.number_input("Choisissez une colonne (0-7)", min_value=0, max_value=7, step=1)
-    if st.button("Jouer"):  # Tour du joueur humain
-        if (row, col) in game.get_valid_moves(BLACK):
-            game.apply_move((row, col), BLACK)
-            ai_play = ai_move(game.board, WHITE)
-            if ai_play:
-                game.apply_move(ai_play, WHITE)
-            st.write("Mouvement de l'IA :", ai_play)
-            st.write("Nouveau plateau:")
-            st.write(game.board)
+if student_id and user_code:
+    try:
+        exec(user_code, globals())
+
+        if "user_ai" in globals() and callable(globals()["user_ai"]):
+            user_ai = globals()["user_ai"]
+            st.success(f"Votre IA a été enregistrée pour l'étudiant {student_id} !")
+
+            # Lancer une partie IA vs IA
+            if st.button("Lancer la partie IA vs IA"):
+                game = Othello()
+
+                while not game.is_game_over():
+                    # ✅ Vérifier qu'il y a des coups valides avant d'utiliser random.choice()
+                    valid_moves = game.get_valid_moves(game.current_player)
+                    if not valid_moves:
+                        game.current_player = -game.current_player
+                        continue
+
+                    current_ai = user_ai if game.current_player == BLACK else lambda b, p: random.choice(valid_moves)
+                    move = current_ai(game.board, game.current_player)
+
+                    if move:
+                        game.apply_move(move, game.current_player)
+                    game.current_player = -game.current_player
+
+                st.write(f"🎉 Partie terminée pour l'étudiant {student_id} !")
+
+                # Calcul du score (différence de pions)
+                final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
+                st.write(f"Votre score : {final_score}")
+
+                # Ajouter au classement
+                new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
+                st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
+                st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by="Score", ascending=False)
+
+                # Afficher le plateau final
+                draw_board(game.board)
+
         else:
-            st.write("Coup invalide. Essayez encore.")
+            st.error("⚠️ Votre code doit définir une fonction `user_ai(board, player)`.")  # Vérification
 
-elif mode == "IA vs IA":
-    if st.button("Lancer la partie IA vs IA"):
-        while game.get_valid_moves(game.current_player):
-            ai_play = ai_move(game.board, game.current_player)
-            if ai_play:
-                game.apply_move(ai_play, game.current_player)
-                game.current_player = -game.current_player
-        st.write("Partie terminée! Voici le plateau final:")
-        st.write(game.board)
+    except Exception as e:
+        st.error(f"❌ Erreur dans votre code : {e}")
+
+# Affichage du classement
+st.subheader("🏅 Classement des étudiants")
+st.dataframe(st.session_state.leaderboard)
