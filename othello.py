@@ -104,7 +104,7 @@ def draw_board(board):
     st.pyplot(fig)
 
 # Interface Streamlit
-st.title("🏆 Othello - Compétition des Étudiants !")
+st.title("🏆 Othello - Compétition TP1 ift3335 !")
 
 # Formulaire pour entrer l'ID étudiant
 student_id = st.text_input("Entrez votre ID étudiant")
