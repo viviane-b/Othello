@@ -134,9 +134,18 @@ if student_id and user_code:
                 final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
                 st.write(f"Votre score : {final_score}")
 
-                # Ajouter au classement
-                new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
-                st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
+                # Mise à jour du leaderboard **uniquement si le score est meilleur**
+                existing_entry = st.session_state.leaderboard[st.session_state.leaderboard["ID"] == student_id]
+
+                if not existing_entry.empty:
+                    current_best_score = existing_entry["Score"].values[0]
+                    if final_score > current_best_score:
+                        st.session_state.leaderboard.loc[st.session_state.leaderboard["ID"] == student_id, "Score"] = final_score
+                else:
+                    new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
+                    st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
+
+                # Trier le leaderboard
                 st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by="Score", ascending=False)
 
                 # Afficher le plateau final
