@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import time  # Import pour ajouter un délai entre les coups
 
 # Définition des constantes
 EMPTY = 0
@@ -26,6 +27,32 @@ def save_leaderboard(df):
 # Charger les scores existants au démarrage
 if "leaderboard" not in st.session_state:
     st.session_state.leaderboard = load_leaderboard()
+
+def update_leaderboard(student_id, final_score):
+    df = st.session_state.leaderboard
+    df["ID"] = df["ID"].astype(int)
+    df["Score"] = df["Score"].astype(int)
+    # 🔥 Mise à jour du leaderboard
+    student_id = int(student_id)
+    existing_index = df.index[df["ID"] == student_id].tolist()
+
+
+    if existing_index:
+        current_best_score = df.at[existing_index[0], "Score"]
+        if final_score > current_best_score:
+            df.at[existing_index[0], "Score"] = final_score
+            st.success(f"🎉 Félicitations {student_id} ! Votre score a été amélioré de {current_best_score} à {final_score}.")
+        else:
+            st.info(f"📌 Votre score actuel ({final_score}) n'a pas dépassé votre meilleur score ({current_best_score}).")
+    else:
+        # Ajouter un nouvel ID avec son score
+        new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
+        df = pd.concat([df, new_entry], ignore_index=True)
+
+    # Trier et sauvegarder
+    df = df.sort_values(by="Score", ascending=False)
+    st.session_state.leaderboard = df
+    save_leaderboard(df)
 
 # Classe du jeu Othello
 class Othello:
@@ -122,29 +149,6 @@ def minimax_ai(board, player):
     _, best_move = minimax(board, DEPTH, True, player)
     return best_move
 
-# Affichage du plateau
-def draw_board(board):
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.set_facecolor("#006400")  # Fond vert foncé
-
-    for x in range(9):
-        ax.plot([x-0.5, x-0.5], [-0.5, 7.5], color='black', linewidth=2)
-        ax.plot([-0.5, 7.5], [x-0.5, x-0.5], color='black', linewidth=2)
-
-    for row in range(8):
-        for col in range(8):
-            if board[row, col] == BLACK:
-                ax.add_patch(plt.Circle((col, row), 0.4, color='black', zorder=2))
-            elif board[row, col] == WHITE:
-                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_xlim(-0.5, 7.5)
-    ax.set_ylim(7.5, -0.5)
-
-    st.pyplot(fig)
-
 # Interface Streamlit
 st.title("🏆 Othello - Compétition TP1 ift3335 !")
 
@@ -167,18 +171,46 @@ if student_id and user_code:
             if st.button("Lancer la partie IA vs Minimax AI"):
                 game = Othello()
 
+                # Préparer une seule figure pour tout le jeu
+                fig, ax = plt.subplots(figsize=(8, 8))
+                plot_placeholder = st.empty()  # Réserve l'espace pour la figure
+
                 while not game.is_game_over():
                     valid_moves = game.get_valid_moves(game.current_player)
                     if not valid_moves:
                         game.current_player = -game.current_player
                         continue
 
-                    # User AI plays as BLACK, Minimax AI as WHITE
+                    # AI joue
                     current_ai = user_ai if game.current_player == BLACK else minimax_ai
                     move = current_ai(game.board, game.current_player)
 
                     if move:
                         game.apply_move(move, game.current_player)
+
+                    # Mettre à jour le plateau dans la même figure
+                    ax.clear()
+                    ax.set_facecolor("#006400")  
+                    
+                    for x in range(9):
+                        ax.plot([x-0.5, x-0.5], [-0.5, 7.5], color='black', linewidth=2)
+                        ax.plot([-0.5, 7.5], [x-0.5, x-0.5], color='black', linewidth=2)
+                    
+                    for row in range(8):
+                        for col in range(8):
+                            if game.board[row, col] == BLACK:
+                                ax.add_patch(plt.Circle((col, row), 0.4, color='black', zorder=2))
+                            elif game.board[row, col] == WHITE:
+                                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))
+                    
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    ax.set_xlim(-0.5, 7.5)
+                    ax.set_ylim(7.5, -0.5)
+
+                    plot_placeholder.pyplot(fig)  # Met à jour dans la même figure
+                    #time.sleep(1)  # Pause d'une seconde entre chaque coup
+
                     game.current_player = -game.current_player
 
                 st.write(f"🎉 Partie terminée pour l'étudiant {student_id} !")
@@ -186,23 +218,10 @@ if student_id and user_code:
                 final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
                 st.write(f"Votre score : {final_score}")
 
-                # 🔥 Mise à jour du leaderboard
-                existing_entry = st.session_state.leaderboard[st.session_state.leaderboard["ID"] == student_id]
+                # Mise à jour du leaderboard
+                update_leaderboard(student_id, final_score)
 
-                if not existing_entry.empty:
-                    current_best_score = existing_entry["Score"].values[0]
-                    if final_score > current_best_score:
-                        st.session_state.leaderboard.loc[st.session_state.leaderboard["ID"] == student_id, "Score"] = final_score
-                else:
-                    new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
-                    st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
-
-                # Trier et sauvegarder
-                st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by="Score", ascending=False)
-                save_leaderboard(st.session_state.leaderboard)
-
-                draw_board(game.board)
-
+                
         else:
             st.error("⚠️ Votre code doit définir une fonction `user_ai(board, player)`.")  
 
@@ -211,4 +230,6 @@ if student_id and user_code:
 
 # Affichage du classement
 st.subheader("🏅 Classement des étudiants")
+st.session_state.leaderboard["ID"] = st.session_state.leaderboard["ID"].astype(int)
+st.session_state.leaderboard["Score"] = st.session_state.leaderboard["Score"].astype(int)
 st.dataframe(st.session_state.leaderboard)
