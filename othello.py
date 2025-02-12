@@ -54,6 +54,7 @@ def update_leaderboard(student_id, final_score):
     st.session_state.leaderboard = df
     save_leaderboard(df)
 
+
 # Classe du jeu Othello
 class Othello:
     def __init__(self):
@@ -149,6 +150,26 @@ def minimax_ai(board, player):
     _, best_move = minimax(board, DEPTH, True, player)
     return best_move
 
+# 📌 Structure d'une IA pour Othello (sans implémentation)
+ia_placeholder = """\
+# Définissez votre fonction IA ici
+def user_ai(board, player):
+    
+"""
+
+ia1_placeholder = """\
+# Définissez votre fonction IA 1 ici
+def user_ai1(board, player):
+    
+"""
+
+ia2_placeholder = """\
+# Définissez votre fonction IA 2 ici
+def user_ai2(board, player):
+    
+"""
+
+
 # Interface Streamlit
 st.title("🏆 Othello - Compétition TP1 ift3335 !")
 
@@ -160,7 +181,7 @@ student_id = st.text_input("Entrez votre ID étudiant")
 st.write("Soumettez votre propre IA sous forme de fonction Python.")
 
 # Champ de soumission de code
-user_code = st.text_area("Entrez votre code Python ici :", height=200)
+user_code = st.text_area("Entrez votre code Python ici :", height=200, placeholder= ia_placeholder)
 
 if student_id and user_code:
     try:
@@ -240,11 +261,11 @@ st.dataframe(st.session_state.leaderboard)
 # deux IA contre eux
 st.subheader("🤖 IA 1")
 id_ia1 = st.text_input("ID de l'étudiant IA 1")
-code_ia1 = st.text_area("Entrez le code de IA 1 :", height=200)
+code_ia1 = st.text_area("Entrez le code de IA 1 :", height=200, placeholder= ia1_placeholder)
 
 st.subheader("🤖 IA 2")
 id_ia2 = st.text_input("ID de l'étudiant IA 2")
-code_ia2 = st.text_area("Entrez le code de IA 2 :", height=200)
+code_ia2 = st.text_area("Entrez le code de IA 2 :", height=200, placeholder= ia2_placeholder)
 
 if id_ia1 and id_ia2 and code_ia1 and code_ia2:
     try:
