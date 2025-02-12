@@ -152,6 +152,8 @@ def minimax_ai(board, player):
 # Interface Streamlit
 st.title("🏆 Othello - Compétition TP1 ift3335 !")
 
+st.title("Compétition entre IA !")
+
 # Formulaire pour entrer l'ID étudiant
 student_id = st.text_input("Entrez votre ID étudiant")
 
@@ -209,7 +211,7 @@ if student_id and user_code:
                     ax.set_ylim(7.5, -0.5)
 
                     plot_placeholder.pyplot(fig)  # Met à jour dans la même figure
-                    #time.sleep(1)  # Pause d'une seconde entre chaque coup
+                    time.sleep(1)  # Pause d'une seconde entre chaque coup
 
                     game.current_player = -game.current_player
 
@@ -233,3 +235,90 @@ st.subheader("🏅 Classement des étudiants")
 st.session_state.leaderboard["ID"] = st.session_state.leaderboard["ID"].astype(int)
 st.session_state.leaderboard["Score"] = st.session_state.leaderboard["Score"].astype(int)
 st.dataframe(st.session_state.leaderboard)
+
+
+# deux IA contre eux
+st.subheader("🤖 IA 1")
+id_ia1 = st.text_input("ID de l'étudiant IA 1")
+code_ia1 = st.text_area("Entrez le code de IA 1 :", height=200)
+
+st.subheader("🤖 IA 2")
+id_ia2 = st.text_input("ID de l'étudiant IA 2")
+code_ia2 = st.text_area("Entrez le code de IA 2 :", height=200)
+
+if id_ia1 and id_ia2 and code_ia1 and code_ia2:
+    try:
+        # Initialisation des variables IA
+        globals()["user_ai1"] = None
+        globals()["user_ai2"] = None
+
+        exec(code_ia1, globals())
+        exec(code_ia2, globals())
+
+        if "user_ai1" in globals() and "user_ai2" in globals() and callable(globals()["user_ai1"]) and callable(globals()["user_ai2"]):
+            st.success(f"Les IA {id_ia1} et {id_ia2} ont été chargées !")
+
+            if st.button("Démarrer la compétition ⚔️"):
+                game = Othello()
+
+                # Préparer une seule figure pour tout le jeu
+                fig, ax = plt.subplots(figsize=(8, 8))
+                plot_placeholder = st.empty()  # Réserve l'espace pour la figure
+
+                # Affichage des mouvements
+                while not game.is_game_over():
+                    valid_moves = game.get_valid_moves(game.current_player)
+                    if not valid_moves:
+                        game.current_player = -game.current_player
+                        continue
+
+                    # Sélection de l'IA en fonction du joueur courant
+                    current_ai = user_ai1 if game.current_player == BLACK else user_ai2
+                    move = current_ai(game.board, game.current_player)
+
+                    if move:
+                        game.apply_move(move, game.current_player)
+
+                    # Mettre à jour le plateau dans la même figure
+                    ax.clear()
+                    ax.set_facecolor("#006400")  
+
+                    for x in range(9):
+                        ax.plot([x-0.5, x-0.5], [-0.5, 7.5], color='black', linewidth=2)
+                        ax.plot([-0.5, 7.5], [x-0.5, x-0.5], color='black', linewidth=2)
+
+                    for row in range(8):
+                        for col in range(8):
+                            if game.board[row, col] == BLACK:
+                                ax.add_patch(plt.Circle((col, row), 0.4, color='black', zorder=2))
+                            elif game.board[row, col] == WHITE:
+                                ax.add_patch(plt.Circle((col, row), 0.4, color='white', zorder=2, edgecolor="black", linewidth=2))
+
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    ax.set_xlim(-0.5, 7.5)
+                    ax.set_ylim(7.5, -0.5)
+
+                    plot_placeholder.pyplot(fig)  # Met à jour dans la même figure
+                    time.sleep(1)  # Pause d'une seconde entre chaque coup
+
+                    game.current_player = -game.current_player
+
+                # Déterminer le gagnant
+                score_ia1 = np.sum(game.board == BLACK)
+                score_ia2 = np.sum(game.board == WHITE)
+
+                if score_ia1 > score_ia2:
+                    winner = id_ia1
+                    st.success(f"🏆 L'IA {id_ia1} a gagné avec un score de {score_ia1} contre {score_ia2} !")
+                elif score_ia2 > score_ia1:
+                    winner = id_ia2
+                    st.success(f"🏆 L'IA {id_ia2} a gagné avec un score de {score_ia2} contre {score_ia1} !")
+                else:
+                    st.warning(f"🤝 Match nul entre {id_ia1} et {id_ia2} ! Score : {score_ia1} - {score_ia2}")
+
+        else:
+            st.error("⚠️ Les codes doivent définir des fonctions `user_ai1(board, player)` et `user_ai2(board, player)`.")  
+
+    except Exception as e:
+        st.error(f"❌ Erreur dans les codes soumis : {e}")
