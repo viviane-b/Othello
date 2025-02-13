@@ -18,7 +18,7 @@ LEADERBOARD_FILE = "leaderboard.csv"
 def load_leaderboard():
     if os.path.exists(LEADERBOARD_FILE):
         return pd.read_csv(LEADERBOARD_FILE)
-    return pd.DataFrame(columns=["ID", "Score"])
+    return pd.DataFrame(columns=["ID","Nom d'équipe", "Score"])
 
 # 📌 Sauvegarder le leaderboard dans un fichier CSV
 def save_leaderboard(df):
@@ -28,7 +28,7 @@ def save_leaderboard(df):
 if "leaderboard" not in st.session_state:
     st.session_state.leaderboard = load_leaderboard()
 
-def update_leaderboard(student_id, final_score):
+def update_leaderboard(student_id,team_name, final_score):
     df = st.session_state.leaderboard
     df["ID"] = df["ID"].astype(int)
     df["Score"] = df["Score"].astype(int)
@@ -41,12 +41,13 @@ def update_leaderboard(student_id, final_score):
         current_best_score = df.at[existing_index[0], "Score"]
         if final_score > current_best_score:
             df.at[existing_index[0], "Score"] = final_score
-            st.success(f"🎉 Félicitations {student_id} ! Votre score a été amélioré de {current_best_score} à {final_score}.")
+            df.at[existing_index[0], "Nom d'équipe"] = team_name
+            st.success(f"🎉 Félicitations {team_name} (ID: {student_id})! Votre score a été amélioré de {current_best_score} à {final_score}.")
         else:
             st.info(f"📌 Votre score actuel ({final_score}) n'a pas dépassé votre meilleur score ({current_best_score}).")
     else:
         # Ajouter un nouvel ID avec son score
-        new_entry = pd.DataFrame([[student_id, final_score]], columns=["ID", "Score"])
+        new_entry = pd.DataFrame([[student_id,team_name, final_score]], columns=["ID","Nom d'équipe", "Score"])
         df = pd.concat([df, new_entry], ignore_index=True)
 
     # Trier et sauvegarder
@@ -177,19 +178,20 @@ st.title("Compétition entre IA !")
 
 # Formulaire pour entrer l'ID étudiant
 student_id = st.text_input("Entrez votre ID étudiant")
+team_name = st.text_input("Entrez le nom de votre équipe")
 
 st.write("Soumettez votre propre IA sous forme de fonction Python.")
 
 # Champ de soumission de code
 user_code = st.text_area("Entrez votre code Python ici :", height=200, placeholder= ia_placeholder)
 
-if student_id and user_code:
+if student_id and team_name and user_code:
     try:
         exec(user_code, globals())
 
         if "user_ai" in globals() and callable(globals()["user_ai"]):
             user_ai = globals()["user_ai"]
-            st.success(f"Votre IA a été enregistrée pour l'étudiant {student_id} !")
+            st.success(f"Votre IA a été enregistrée pour l'équipe {team_name} et {student_id} id!")
 
             if st.button("Lancer la partie IA vs Minimax AI"):
                 game = Othello()
@@ -236,7 +238,7 @@ if student_id and user_code:
 
                     game.current_player = -game.current_player
 
-                st.write(f"🎉 Partie terminée pour l'étudiant {student_id} !")
+                st.write(f"🎉 Partie terminée pour l'équipe {team_name} et l' ID {student_id} !")
 
                 final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
                 st.write(f"Votre score : {final_score}")
