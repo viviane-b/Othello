@@ -9,18 +9,18 @@ import time  # Import pour ajouter un délai entre les coups
 EMPTY = 0
 BLACK = 1
 WHITE = -1
-DEPTH = 3  # Profondeur du Minimax
+DEPTH = 4 # Profondeur du Minimax
 
-# 📌 Chemin du fichier où sauvegarder les scores
+# Chemin du fichier où sauvegarder les scores
 LEADERBOARD_FILE = "leaderboard.csv"
 
-# 📌 Charger le leaderboard depuis un fichier CSV au démarrage
+# Charger le leaderboard depuis un fichier CSV au démarrage
 def load_leaderboard():
     if os.path.exists(LEADERBOARD_FILE):
         return pd.read_csv(LEADERBOARD_FILE)
     return pd.DataFrame(columns=["ID","Nom d'équipe", "Score"])
 
-# 📌 Sauvegarder le leaderboard dans un fichier CSV
+# Sauvegarder le leaderboard dans un fichier CSV
 def save_leaderboard(df):
     df.to_csv(LEADERBOARD_FILE, index=False)
 
@@ -51,7 +51,7 @@ def update_leaderboard(student_id,team_name, final_score):
         df = pd.concat([df, new_entry], ignore_index=True)
 
     # Trier et sauvegarder
-    df = df.sort_values(by="Score", ascending=False)
+    df = df.sort_values(by="Score", ascending=False)[["ID", "Nom d'équipe", "Score"]]
     st.session_state.leaderboard = df
     save_leaderboard(df)
 
@@ -151,7 +151,7 @@ def minimax_ai(board, player):
     _, best_move = minimax(board, DEPTH, True, player)
     return best_move
 
-# 📌 Structure d'une IA pour Othello (sans implémentation)
+# Structure d'une IA pour Othello (sans implémentation)
 ia_placeholder = """\
 # Définissez votre fonction IA ici
 def user_ai(board, player):
