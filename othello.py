@@ -244,7 +244,7 @@ if student_id and team_name and user_code:
                 st.write(f"Votre score : {final_score}")
 
                 # Mise à jour du leaderboard
-                update_leaderboard(student_id, final_score)
+                update_leaderboard(student_id, team_name, final_score)
 
                 
         else:
