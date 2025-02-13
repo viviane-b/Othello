@@ -255,9 +255,10 @@ if student_id and team_name and user_code:
 
 # Affichage du classement
 st.subheader("🏅 Classement des étudiants")
-st.session_state.leaderboard["ID"] = st.session_state.leaderboard["ID"].astype(int)
-st.session_state.leaderboard["Score"] = st.session_state.leaderboard["Score"].astype(int)
-st.dataframe(st.session_state.leaderboard)
+with st.container():
+    st.session_state.leaderboard["ID"] = st.session_state.leaderboard["ID"].astype(int)
+    st.session_state.leaderboard["Score"] = st.session_state.leaderboard["Score"].astype(int)
+    st.dataframe(st.session_state.leaderboard, use_container_width=True)
 
 
 # deux IA contre eux
