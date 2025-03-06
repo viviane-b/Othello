@@ -210,7 +210,7 @@ if student_id and team_name and user_code:
                         continue
 
                     # AI joue
-                    current_ai = user_ai if game.current_player == BLACK else minimax_ai
+                    current_ai = algos.user_ai if game.current_player == BLACK else minimax_ai
                     move = current_ai(game.board, game.current_player)
 
                     if move:

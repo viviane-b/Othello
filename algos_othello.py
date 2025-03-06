@@ -13,8 +13,6 @@ CELL_VALUES = np.concatenate((np.concatenate([quadrant1, quadrant2], axis=0), np
 print(CELL_VALUES)
 
 # 1.Minimax amélioré
-DEPTH_IMRPOVED = 6
-
 def evaluate_board_improved(game, player):
     # combinaison linéaire des heuristiques
     board = game.board
@@ -67,10 +65,53 @@ def minimax_improved(board, depth, maximizing, player):
         return min_eval, best_move
 
 # Improved minimax -- in streamlit has to become user_ai(board, player)
+DEPTH_IMPROVED = 6
+
 def improved_minimax_ai(board, player):
-    _, best_move = minimax_improved(board, DEPTH_IMRPOVED, True, player)
+    _, best_move = minimax_improved(board, DEPTH_IMPROVED, True, player)
     return best_move
 
 # 2.Alpha-Beta Pruning
+
+# https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
+def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player):
+    game = oth.Othello()
+    game.board = board.copy()
+
+    # if leaf or no valid moves (no children) return the board aka value of the curr position
+    if depth == 0 or game.is_game_over():
+        return evaluate_board_improved(game, player), None # TODO: temp eval function
+
+    valid_moves = game.get_valid_moves(player)
+    best_move = None
+
+    if maximizing:
+        best = float("-inf")
+        for move in valid_moves:
+            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, False, -player)
+            best = max(best, val)
+            alpha = max(alpha, best)
+            best_move = move
+            if beta <= alpha:
+                break # élaguer la branche et toutes les prochaines
+        return best, best_move
+    else:
+        best = float("inf")
+        for move in valid_moves:
+            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, True, -player)
+            best = min(best, val)
+            beta = min(beta, best)
+            best_move = move
+            if beta <= alpha:
+                break
+        return best, best_move
+
+# Paste on the platform
 DEPTH_ALPHA_BETA = 7
 
+def alpha_beta_ai(board, player):
+    _, best_move = alpha_beta_pruning(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player)
+    return best_move
+
+def user_ai(board, player):
+    return alpha_beta_ai(board, player)
