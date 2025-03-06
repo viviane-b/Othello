@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import time  # Import pour ajouter un délai entre les coups
-
+import algos_othello as algos
+import traceback
 
 # Définition des constantes
 EMPTY = 0
@@ -152,6 +153,7 @@ def minimax_ai(board, player):
     _, best_move = minimax(board, DEPTH, True, player)
     return best_move
 
+
 # Structure d'une IA pour Othello (sans implémentation)
 ia_placeholder = """\
 # Définissez votre fonction IA ici
@@ -178,8 +180,8 @@ st.title("🏆 Othello - Compétition TP1 ift3335 !")
 st.title("Compétition entre IA !")
 
 # Formulaire pour entrer l'ID étudiant
-student_id = st.text_input("Entrez votre ID étudiant")
-team_name = st.text_input("Entrez le nom de votre équipe")
+student_id = st.text_input("Entrez votre ID étudiant", key="student_id")
+team_name = st.text_input("Entrez le nom de votre équipe", key="team_name")
 
 st.write("Soumettez votre propre IA sous forme de fonction Python.")
 
@@ -252,7 +254,10 @@ if student_id and team_name and user_code:
             st.error("⚠️ Votre code doit définir une fonction `user_ai(board, player)`.")  
 
     except Exception as e:
-        st.error(f"❌ Erreur dans votre code : {e}")
+        # st.error(f"❌ Erreur dans votre code : {e}")
+        error_message = f"❌ Erreur dans votre code : {e}"
+        traceback_details = traceback.format_exc()  # Get the full traceback as a string
+        st.error(f"{error_message}\n{traceback_details}")
 
 # Affichage du classement
 st.subheader("🏅 Classement des étudiants")
@@ -264,11 +269,11 @@ with st.container():
 
 # deux IA contre eux
 st.subheader("🤖 IA 1")
-id_ia1 = st.text_input("ID de l'étudiant IA 1")
+id_ia1 = st.text_input("ID de l'étudiant IA 1", key="id_ia1_input")
 code_ia1 = st.text_area("Entrez le code de IA 1 :", height=200, placeholder= ia1_placeholder)
 
 st.subheader("🤖 IA 2")
-id_ia2 = st.text_input("ID de l'étudiant IA 2")
+id_ia2 = st.text_input("ID de l'étudiant IA 2", key="id_ia2_input")
 code_ia2 = st.text_area("Entrez le code de IA 2 :", height=200, placeholder= ia2_placeholder)
 
 if id_ia1 and id_ia2 and code_ia1 and code_ia2:
