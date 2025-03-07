@@ -57,6 +57,23 @@ def update_leaderboard(student_id,team_name, final_score):
     st.session_state.leaderboard = df
     save_leaderboard(df)
 
+# class Board:
+#     def __init__(self):
+#         self.board = np.zeros((8, 8), dtype=int)
+#         self.board[3, 3], self.board[4, 4] = WHITE, WHITE
+#         self.board[3, 4], self.board[4, 3] = BLACK, BLACK
+#
+#     def __hash__(self):
+#         return hash(self.board)
+#
+#     def get_board(self):
+#         return self.board
+#
+    # def __getitem__(self, item):
+    #     return self.board[item]
+    #
+    # def __setitem__(self, key, value):
+    #     self.board[key] = value
 
 # Classe du jeu Othello
 class Othello:
@@ -64,6 +81,8 @@ class Othello:
         self.board = np.zeros((8, 8), dtype=int)
         self.board[3, 3], self.board[4, 4] = WHITE, WHITE
         self.board[3, 4], self.board[4, 3] = BLACK, BLACK
+        # obj_board = Board()
+       # self.board = obj_board.get_board()
         self.current_player = BLACK
 
     def get_valid_moves(self, player):
@@ -110,6 +129,8 @@ class Othello:
 
     def is_game_over(self):
         return not self.get_valid_moves(BLACK) and not self.get_valid_moves(WHITE)
+
+
 
 # Minimax AI
 def evaluate_board(board):
