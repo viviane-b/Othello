@@ -78,7 +78,13 @@ def improved_minimax_ai(board, player):
 # 2.Alpha-Beta Pruning
 
 # https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
-def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player):
+
+# Paste on the platform
+DDEPTH_ALPHA_BETA = 7
+
+# https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
+def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_moves):
+
     game = oth.Othello()
     game.board = board.copy()
 
@@ -89,36 +95,80 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player):
     valid_moves = game.get_valid_moves(player)
     best_move = None
 
+    k_d = killer_moves[depth]
+
     if maximizing:
         best = float("-inf")
+        # look at killer moves first
+        for move in k_d:
+            if move in valid_moves: # explore
+                val, _ = alpha_beta_pruning(board, depth - 1, alpha, beta, False, -player)
+                best = max(best, val)
+                alpha = max(alpha, best)
+                best_move = move
+                if beta <= alpha:
+                    if move not in k_d:
+                        if len(k_d) >= 2:
+                            k_d.pop()  # Keep only the top 2 killer moves
+                        k_d.insert(0, move)
+                    break  # élaguer la branche et toutes les prochaines
+
         for move in valid_moves:
+            if move in k_d:
+                continue
             val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, False, -player)
             best = max(best, val)
             alpha = max(alpha, best)
             best_move = move
             if beta <= alpha:
-                break # élaguer la branche et toutes les prochaines
+                if move not in k_d:
+                    if len(k_d) >= 2:
+                        k_d.pop()  # Keep only the top 2 killer moves
+                    k_d.insert(0, move)
+                break
         return best, best_move
     else:
         best = float("inf")
+
+        for move in k_d:
+            if move in valid_moves:
+                val, _ = alpha_beta_pruning(board, depth - 1, alpha, beta, True, -player, killer_moves)
+                best = min(best, val)
+                beta = min(beta, best)
+                best_move = move
+                if beta <= alpha:
+                    if move not in k_d:
+                        if len(k_d) >= 2:
+                            k_d.pop()  # Keep only the top 2 killer moves
+                        k_d.insert(0, move)
+                    break  # élaguer la branche et toutes les prochaines
+
+
         for move in valid_moves:
-            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, True, -player)
+            if move in k_d:
+                continue
+            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, True, -player, killer_moves)
             best = min(best, val)
             beta = min(beta, best)
             best_move = move
             if beta <= alpha:
+                if move not in k_d:
+                    if len(k_d) >= 2:
+                        k_d.pop()  # Keep only the top 2 killer moves
+                    k_d.insert(0, move)
                 break
+
         return best, best_move
 
 # Paste on the platform
-DEPTH_ALPHA_BETA = 7
 
 def alpha_beta_ai(board, player):
-    _, best_move = alpha_beta_pruning(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player)
+    killer_moves = [[] for _ in range(DEPTH_ALPHA_BETA + 1)]
+    _, best_move = alpha_beta_pruning(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player, killer_moves)
     return best_move
 
-
-
+def user_ai(board, player):
+    return monte_carlo(board, player)
 
 # https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
 LIMIT_EXPLORATIONS = 10000
