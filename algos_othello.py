@@ -1,3 +1,5 @@
+import random
+from operator import itemgetter
 import numpy as np
 import othello as oth
 
@@ -114,4 +116,57 @@ def alpha_beta_ai(board, player):
     return best_move
 
 def user_ai(board, player):
-    return alpha_beta_ai(board, player)
+    return monte_carlo(board, player)
+
+
+# https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
+LIMIT_EXPLORATIONS = 10000
+def monte_carlo(board, player):
+    game = oth.Othello()
+    game.board = board.copy()
+    possible_nodes = [[board,0]]
+
+    best_score = 0
+    best_move = None
+
+
+    for _ in range(LIMIT_EXPLORATIONS):
+
+        # select root node
+        root = max(possible_nodes, key=itemgetter(1))[0]
+        game.board = root
+        valid_moves = game.get_valid_moves(player)
+
+        for i in range(len(valid_moves)):
+            new_board = game.board.copy()
+            game.apply_move(valid_moves[i], player)
+
+            # play until game over
+            score = play_random(new_board, player)
+            if score > best_score:
+                best_score = score
+                best_move = valid_moves[i]
+            print(score)
+            possible_nodes.append([new_board, score])
+
+    return best_move
+
+
+
+def play_random(board, player):
+    game = oth.Othello()
+    game.board = board.copy()
+    print("is game over?", game.is_game_over(), "\n", game.board)
+    if game.is_game_over() :
+        score = np.sum(game.board == oth.WHITE)- np.sum(game.board == oth.BLACK)
+        print("good score ", score)
+        return score
+
+    valid_moves = game.get_valid_moves(player)
+    move = random.choice(valid_moves)
+    game.apply_move(move, player)
+    score = play_random(game.board, player)
+    print(score)
+    return score
+
+
