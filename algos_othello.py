@@ -221,9 +221,10 @@ def play_random(board, player):
     return score
 
 
+
 # https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1
 # https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
-class MCTS:
+class MCTS1:
 
     def __init__(self, player):
         self.player = player
@@ -241,12 +242,9 @@ class MCTS:
         if node not in self.children:
             # find children
             valid_moves = self.game.get_valid_moves(node)
-            for move in valid_moves:
-                new_board = node.board.copy()
-                self.game.apply_move(move, self.player)
-                self.children[node].append(self.game.board)
-                self.game.board = new_board
-            return random.choice(self.children[node])
+            random_move = random.choice(valid_moves)
+            self.game.apply_move(random_move, self.player)
+            return self.game.board
             #return node.find_random_child()
 
         def score(n):
@@ -285,10 +283,11 @@ class MCTS:
         # find children
         valid_moves = self.game.get_valid_moves(node)
         for move in valid_moves:
-            new_board = node.board.copy()
-            self.game.apply_move(move, self.player)
-            self.children[node].append(self.game.board)
-            self.game.board = new_board
+            # find children
+            valid_moves = self.game.get_valid_moves(node)
+            random_move = random.choice(valid_moves)
+            self.game.apply_move(random_move, self.player)
+            self.children[node] = self.game.board
         # self.children[node] = node.find_children()
 
     def _simulate(self, node):
@@ -330,17 +329,136 @@ class MCTS:
         return max(self.children[node], key=uct)
 
 
+class MCTS:
+    "Monte Carlo tree searcher. First rollout the tree then choose a move."
+
+    def __init__(self, player):
+        self.Q = defaultdict(int)  # total reward of each node
+        self.N = defaultdict(int)  # total visit count for each node
+        self.children = dict()  # children of each node
+        self.exploration_weight = 1
+        self.player = player
+
+        # node is an instance of Othello
+
+    def choose(self, node):
+        "Choose the best successor of node. (Choose a move in the game)"
+        if node.is_game_over():
+            raise RuntimeError(f"choose called on terminal node {node}")
+
+        if node not in self.children:
+            possible_moves = node.get_valid_moves(self.player)
+            new_board = node.board.copy()
+            move = random.choice(possible_moves)
+            game = oth.Othello()
+            game.board = new_board
+            game.apply_move(move, self.player)
+            return game
+            #return node.find_random_child()
+
+        def score(n):
+            if self.N[n] == 0:
+                return float("-inf")  # avoid unseen moves
+            return self.Q[n] / self.N[n]  # average reward
+
+        return max(self.children[node], key=score)
+
+    def do_rollout(self, node):
+        "Make the tree one layer better. (Train for one iteration.)"
+        path = self._select(node)
+        leaf = path[-1]
+        self._expand(leaf)
+        reward = self._simulate(leaf)
+        self._backpropagate(path, reward)
+
+    def _select(self, node):
+        "Find an unexplored descendent of `node`"
+        path = []
+        while True:
+            path.append(node)
+            if node not in self.children or not self.children[node]:
+                # node is either unexplored or terminal
+                return path
+            unexplored = self.children[node] - self.children.keys()
+            if unexplored:
+                n = unexplored.pop()
+                path.append(n)
+                return path
+            node = self._uct_select(node)  # descend a layer deeper
+
+    def _expand(self, node):
+        "Update the `children` dict with the children of `node`"
+        if node in self.children:
+            return  # already expanded
+        self.children[node] = []
+        possible_moves = node.get_valid_moves(self.player)
+        new_board = node.board.copy()
+        for move in possible_moves:
+            game = oth.Othello()
+            game.board = new_board
+            game.apply_move(move, self.player)
+            self.children[node].append(game)
+        #self.children[node] = node.find_children()
+
+    def _simulate(self, node):
+        "Returns the reward for a random simulation (to completion) of `node`"
+        invert_reward = True
+        while True:
+            if node.is_game_over():
+                reward = oth.evaluate_board(node.board)
+                #reward = node.reward()
+                return 1 - reward if invert_reward else reward
+            possible_moves = node.get_valid_moves(self.player)
+            new_board = node.board.copy()
+            move = random.choice(possible_moves)
+            game = oth.Othello()
+            game.board = new_board
+            game.apply_move(move, self.player)
+            node = game
+
+            #node = node.find_random_child()
+            invert_reward = not invert_reward
+
+    def _backpropagate(self, path, reward):
+        "Send the reward back up to the ancestors of the leaf"
+        for node in reversed(path):
+            self.N[node] += 1
+            self.Q[node] += reward
+            reward = 1 - reward  # 1 for me is 0 for my enemy, and vice versa
+
+    def _uct_select(self, node):
+        "Select a child of node, balancing exploration & exploitation"
+
+        # All children of node should already be expanded:
+        assert all(n in self.children for n in self.children[node])
+
+        log_N_vertex = math.log(self.N[node])
+
+        def uct(n):
+            "Upper confidence bound for trees"
+            return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
+                log_N_vertex / self.N[n]
+            )
+
+        return max(self.children[node], key=uct)
+
+
 def monte_carlo_play(board, player):
     tree = MCTS(player)
     game = oth.Othello()
-    game.board = board.copy()
+    # game.board = board.copy()
     if game.is_game_over():
         print ("over")
         return
 
     for _ in range (10000):
-        tree.do_rollout(game.board)
-    best_move = tree.choose(game.board)
+        tree.do_rollout(game)
+    best_board = (tree.choose(game)).board
+    diff = best_board - game.board
+    # trouver la position avec un 1
+    position = np.where((diff==1) or (diff==-1))
+    print(position)
+
     return best_move
 
 
