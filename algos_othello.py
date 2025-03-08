@@ -79,8 +79,7 @@ def improved_minimax_ai(board, player):
 
 # https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
 
-# Paste on the platform
-DDEPTH_ALPHA_BETA = 7
+DEPTH_ALPHA_BETA = 7
 
 # https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
 def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_moves):
@@ -102,7 +101,7 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
         # look at killer moves first
         for move in k_d:
             if move in valid_moves: # explore
-                val, _ = alpha_beta_pruning(board, depth - 1, alpha, beta, False, -player)
+                val, _ = alpha_beta_pruning(board, depth - 1, alpha, beta, False, -player, killer_moves)
                 best = max(best, val)
                 alpha = max(alpha, best)
                 best_move = move
@@ -116,7 +115,7 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
         for move in valid_moves:
             if move in k_d:
                 continue
-            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, False, -player)
+            val, _ = alpha_beta_pruning(board, depth-1, alpha, beta, False, -player, killer_moves)
             best = max(best, val)
             alpha = max(alpha, best)
             best_move = move
@@ -163,12 +162,15 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
 # Paste on the platform
 
 def alpha_beta_ai(board, player):
-    killer_moves = [[] for _ in range(DEPTH_ALPHA_BETA + 1)]
+    killer_moves = dict()
+    for i in range(DEPTH_ALPHA_BETA+1):
+        killer_moves[i] = []
     _, best_move = alpha_beta_pruning(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player, killer_moves)
     return best_move
 
 def user_ai(board, player):
-    return monte_carlo(board, player)
+    return alpha_beta_ai(board, player)
+
 
 # https://www.geeksforgeeks.org/ml-monte-carlo-tree-search-mcts/
 LIMIT_EXPLORATIONS = 10000
