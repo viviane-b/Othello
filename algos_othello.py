@@ -5,6 +5,10 @@ import othello as oth
 from collections import defaultdict
 import math
 import copy
+import time
+
+# Temps d'exécution
+times = []
 
 # Valeurs des cases
 quadrant1 = np.array([[500, -150, 30,   10],
@@ -73,7 +77,12 @@ def minimax_improved(board, depth, maximizing, player):
 DEPTH_IMPROVED = 6
 
 def improved_minimax_ai(board, player):
+    start = time.time()
     _, best_move = minimax_improved(board, DEPTH_IMPROVED, True, player)
+    end = time.time()
+    duration = end - start
+    times.append(duration)
+    print(duration)
     return best_move
 
 # 2.Alpha-Beta Pruning
@@ -163,72 +172,25 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
 # Paste on the platform
 
 def alpha_beta_ai(board, player):
+    start = time.time()
     killer_moves = dict()
     for i in range(DEPTH_ALPHA_BETA+1):
         killer_moves[i] = []
     _, best_move = alpha_beta_pruning(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player, killer_moves)
-    return best_move
-
-def user_ai(board, player):
-    return alpha_beta_ai(board, player)
-
-
-
-LIMIT_EXPLORATIONS = 50
-def monte_carlo(board, player):
-    game = oth.Othello()
-    game.board = board.copy()
-    possible_nodes = [[board,0]]
-
-    best_score = 0
-    best_move = None
-
-
-    for _ in range(LIMIT_EXPLORATIONS):
-
-        # select root node
-        root = max(possible_nodes, key=itemgetter(1))[0]
-        game.board = root
-        valid_moves = game.get_valid_moves(player)
-
-        for i in range(len(valid_moves)):
-            new_board = game.board.copy()
-            game.apply_move(valid_moves[i], player)
-
-            # play until game over
-            score = play_random(new_board, player)
-            if score > best_score:
-                best_score = score
-                best_move = valid_moves[i]
-            print(score)
-            possible_nodes.append([new_board, score])
-
+    end = time.time()
+    duration = end - start
+    times.append(duration)
+    print(duration)
     return best_move
 
 
 
-def play_random(board, player):
-    game = oth.Othello()
-    game.board = board.copy()
-    print("is game over?", game.is_game_over(), "\n", game.board)
-    if game.is_game_over() :
-        score = np.sum(game.board == oth.WHITE)- np.sum(game.board == oth.BLACK)
-        print("good score ", score)
-        return score
-
-    valid_moves = game.get_valid_moves(player)
-    move = random.choice(valid_moves)
-    game.apply_move(move, player)
-    score = play_random(game.board, player)
-    print(score)
-    return score
-
+LIMIT_EXPLORATIONS = 1000
 
 
 # https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1
 # https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
 class MCTS:
-    "Monte Carlo tree searcher. First rollout the tree then choose a move."
 
     def __init__(self, player):
         self.Q = defaultdict(int)  # total reward of each node
@@ -247,12 +209,11 @@ class MCTS:
         if node not in self.children:
             possible_moves = node.get_valid_moves(self.player)
             new_board = copy.deepcopy(node.board)
-            #new_board = node.board.deepcopy()
             move = random.choice(possible_moves)
             game = oth.Othello()
             game.board = new_board
             game.apply_move(move, self.player)
-            print("game board \n", game.board)
+            # print("game board \n", game.board)
             return game
             #return node.find_random_child()
 
@@ -261,11 +222,11 @@ class MCTS:
                 return float("-inf")  # avoid unseen moves
             return self.Q[n] / self.N[n]  # average reward
 
-        print("max \n", max(self.children[node], key=score).board)
+        # print("max \n", max(self.children[node], key=score).board)
         return max(self.children[node], key=score)
 
     def do_rollout(self, node):
-        "Make the tree one layer better. (Train for one iteration.)"
+        # Make the tree one layer better. (Train for one iteration.)
         path = self._select(node)
         leaf = path[-1]
         self._expand(leaf)
@@ -273,7 +234,7 @@ class MCTS:
         self._backpropagate(path, reward)
 
     def _select(self, node):
-        "Find an unexplored descendent of `node`"
+        # Find an unexplored descendent of `node`
         path = []
         while True:
             path.append(node)
@@ -288,37 +249,35 @@ class MCTS:
             node = self._uct_select(node)  # descend a layer deeper
 
     def _expand(self, node):
-        "Update the `children` dict with the children of `node`"
+        #Update the `children` dict with the children of `node`
         if node in self.children:
             return  # already expanded
         self.children[node] = []
         possible_moves = node.get_valid_moves(self.player)
-        new_board = copy.deepcopy(node.board)
+
         new_board_1 = node.board.copy()
         for move in possible_moves:
-            print("new board \n", new_board_1)
+            # print("new board \n", new_board_1)
             game = oth.Othello()
             game.board = new_board_1.copy()
             # print("before move \n", new_board_1, game.board)
             game.apply_move(move, self.player)
-            print("children appended \n", game.board)
+            # print("children appended \n", game.board)
             self.children[node].append(game)
         #self.children[node] = node.find_children()
 
     def _simulate(self, node):
-        "Returns the reward for a random simulation (to completion) of `node`"
+        # Returns the reward for a random simulation (to completion) of `node`
         invert_reward = True
         while True:
             if node.is_game_over():
                 reward = oth.evaluate_board(node.board)
-                #reward = node.reward()
                 return 1 - reward if invert_reward else reward
             possible_moves = node.get_valid_moves(self.player)
             new_board = copy.deepcopy(node.board)
-            # new_board = node.board.deepcopy()
+
             if possible_moves is None or len(possible_moves)==0:
                 reward = oth.evaluate_board(node.board)
-                # reward = node.reward()
                 return 1 - reward if invert_reward else reward
             move = random.choice(possible_moves)
             game = oth.Othello()
@@ -326,18 +285,17 @@ class MCTS:
             game.apply_move(move, self.player)
             node = game
 
-            #node = node.find_random_child()
             invert_reward = not invert_reward
 
     def _backpropagate(self, path, reward):
-        "Send the reward back up to the ancestors of the leaf"
+        # Send the reward back up to the ancestors of the leaf
         for node in reversed(path):
             self.N[node] += 1
             self.Q[node] += reward
             reward = 1 - reward  # 1 for me is 0 for my enemy, and vice versa
 
     def _uct_select(self, node):
-        "Select a child of node, balancing exploration & exploitation"
+        # Select a child of node, balancing exploration & exploitation
 
         # All children of node should already be expanded:
         assert all(n in self.children for n in self.children[node])
@@ -345,7 +303,7 @@ class MCTS:
         log_N_vertex = math.log(self.N[node])
 
         def uct(n):
-            "Upper confidence bound for trees"
+            # Upper confidence bound for trees
             return self.Q[n] / self.N[n] + self.exploration_weight * math.sqrt(
                 log_N_vertex / self.N[n]
             )
@@ -354,10 +312,10 @@ class MCTS:
 
 
 def monte_carlo_play(board, player):
+    start = time.time()
     tree = MCTS(player)
     game = oth.Othello()
     game.board = board.copy()
-    # game.board = board.copy()
     if game.is_game_over():
         print ("over")
         return
@@ -366,14 +324,18 @@ def monte_carlo_play(board, player):
         tree.do_rollout(game)
     best_board = (tree.choose(game)).board
     diff = best_board - game.board
-    print("best board \n", best_board)
-    print("diff \n", diff)
+    # print("best board \n", best_board)
+    # print("diff \n", diff)
+
     # trouver la position avec un 1
-    # position = np.where(diff==1 or diff==-1)
     position = np.argwhere(abs(diff)==1)
-    print(position)
+    # print(position)
     best_move = (position[0][0], position[0][1])
-    print("best move \n", best_move)
+    # print("best move \n", best_move)
+    end = time.time()
+    duration = end - start
+    times.append(duration)
+    print(duration)
     return best_move
 
 

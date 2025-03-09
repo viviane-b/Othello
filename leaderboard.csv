@@ -1,7 +1,9 @@
 ID,Nom d'équipe,Score
+45,monte carlo,40
 11,1,32
 0,ex2,22
 4,d,22
-1,a,20
+1,Improved_minimax,22
 2,b,20
 3,c,20
+9,Improved_minimax,-12

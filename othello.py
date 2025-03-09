@@ -267,6 +267,10 @@ if student_id and team_name and user_code:
                 final_score = np.sum(game.board == BLACK) - np.sum(game.board == WHITE)
                 st.write(f"Votre score : {final_score}")
 
+                # Temps d'exécution
+                exec_time = sum(algos.times)/len(algos.times)
+                print("execution time: ", exec_time)
+
                 # Mise à jour du leaderboard
                 update_leaderboard(student_id, team_name, final_score)
 
