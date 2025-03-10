@@ -431,4 +431,4 @@ def monte_carlo_play(board, player):
 
 
 def user_ai(board, player):
-    return alpha_beta_ai(board, player)
+    return monte_carlo_play(board, player)
