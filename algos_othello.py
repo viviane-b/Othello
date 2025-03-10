@@ -91,6 +91,54 @@ def improved_minimax_ai(board, player):
 
 DEPTH_ALPHA_BETA = 7
 
+def a_b_eval(game, player):
+    # evaluate by adding mobility to combi lin
+    board = game.board
+
+    # hardcode les joueurs bc min & max
+    p_mobility = len(game.get_valid_moves(1))
+    o_mobility = len(game.get_valid_moves(-1))
+    actual_m = 0
+    if (p_mobility + o_mobility) != 0:
+        actual_m = 100 * (p_mobility - o_mobility) / (p_mobility + o_mobility)
+    return actual_m + difference_pieces(board) + cell_values(game, player) + nb_possible_moves(game, player)
+
+#  Potential mobility is calculated by
+# counting the number of empty spaces next to at
+# least one of the opponent’s coin
+def count_empty_spaces(board, player):
+    p_value = player
+    o_value = -player
+
+    # Define 8 possible directions (adjacent cells)
+    directions = [(-1, -1), (-1, 0), (-1, 1),
+                  (0, -1), (0, 1),
+                  (1, -1), (1, 0), (1, 1)]
+
+    potential_m = 0
+
+    for r in range(8):
+        for c in range(8):
+            if board[r, c] == 0:
+                for dr, dc in directions:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < 8 and 0 <= nc < 8 and board[nr, nc] == o_value:
+                        potential_m += 1
+                        break
+
+    return potential_m
+
+def a_b_eval2(game, player):
+    # evaluate by adding mobility to combi lin
+    board = game.board
+
+    p_mobility = count_empty_spaces(board, player)
+    o_mobility = count_empty_spaces(board, -player)
+    actual_m = 0
+    if (p_mobility + o_mobility) != 0:
+        actual_m = 100 * (p_mobility - o_mobility) / (p_mobility + o_mobility)
+    return actual_m + difference_pieces(board) + cell_values(game, player) + nb_possible_moves(game, player)
+
 # https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
 def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_moves):
 
@@ -169,6 +217,42 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
 
         return best, best_move
 
+def alpha_beta_pruning_no_killer(board, depth, alpha, beta, maximizing, player):
+
+    game = oth.Othello()
+    game.board = board.copy()
+
+    # if leaf or no valid moves (no children) return the board aka value of the curr position
+    if depth == 0 or game.is_game_over():
+        return a_b_eval2(game,player), None
+
+    valid_moves = game.get_valid_moves(player)
+    best_move = None
+
+    if maximizing:
+        best = float("-inf")
+        for move in valid_moves:
+            val, _ = alpha_beta_pruning_no_killer(board, depth-1, alpha, beta, False, -player)
+            best = max(best, val)
+            alpha = max(alpha, best)
+            best_move = move
+            if beta <= alpha:
+                break
+        return best, best_move
+    else:
+        best = float("inf")
+
+        for move in valid_moves:
+            val, _ = alpha_beta_pruning_no_killer(board, depth-1, alpha, beta, True, -player)
+            best = min(best, val)
+            beta = min(beta, best)
+            best_move = move
+            if beta <= alpha:
+                break
+
+        return best, best_move
+
+
 # Paste on the platform
 
 def alpha_beta_ai(board, player):
@@ -183,7 +267,14 @@ def alpha_beta_ai(board, player):
     print(duration)
     return best_move
 
-
+def alpha_beta_ai_2(board, player):
+    start = time.time()
+    _, best_move = alpha_beta_pruning_no_killer(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player)
+    end = time.time()
+    duration = end - start
+    times.append(duration)
+    print(duration)
+    return best_move
 
 LIMIT_EXPLORATIONS = 1000
 
@@ -340,4 +431,4 @@ def monte_carlo_play(board, player):
 
 
 def user_ai(board, player):
-    return monte_carlo_play(board, player)
+    return alpha_beta_ai(board, player)

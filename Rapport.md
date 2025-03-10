@@ -16,6 +16,25 @@ La combinaison linéaire est simplement l'addition de la valeur de chaque critè
 
 
 #### Alpha-Beta
+Nous avons deux implémentations de la recherche alpha-beta en se basant sur [ce papier](https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/miniproject1_vaishu_muthu/Paper/Final_Paper.pdf)
+
+Dans la première, on a gardé le comportement habituel de l'algorithme (tiré de GeeksForGeeks) et 
+nous avons modifié la fonction d'évaluation employée dans minimax amélioré pour qu'elle considère également 
+la mobilité potentielle de notre joueur (-> a_b_eval2). Cette dernière indique le nombre de cases vides adjacentes à l'adversaire,
+elle donne le nombre de déplacements possibles du joueur à travers les prochains tours du jeu. On l'a chosie par rapport
+à la mobilité actuelle, car le fait qu'elle regarde "dans le futur" la rend plus intéressante. De plus, parmi 
+les heuristiques du papier duquel nous nous sommes inspirées, elle était la plus intuitive à implémenter. 
+Nous avons également implémenté la mobilité actuelle (a_b_eval), mais il s'avère que le score est le même dans les deux cas, 
+seule la complexité change pour la mobilité potentielle, car le calcul est plus long.
+
+La deuxième façon dont nous avons implémenté l'algorithme fut avec l'usage du "killer heuristic". Son but est de prioriser
+les choix ayant causé un élagage à un niveau donné ("killer"), car ces choix pourraient être bons dans un autre sous-arbres et ne pas causer un
+élagage. Son but est donc de gagner du temps au lieu d'attendre pour se rendre à un bon sous-arbre. Ici, on a utilisé
+la même fonction d'évaluation que minimax (evaluation_board_improved) pour voir si le comportement est vraiment différent.
+
+Le score est le même dans tous les cas (actual mobility, potential mobility, killer heuristic), mais le temps d'exécution est 
+un peu différent. 
+
 
 #### Recherche arborescente Monte-Carlo
 Pour la recherche Monte-Carlo, nous nous sommes inspirées d'un [programme](https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1)
@@ -31,7 +50,7 @@ Voici les performances obtenues avec chaque algorithme:
 | Algorithme            | Meilleur score | Temps d'exécution moyen par coup (en secondes) |
 |-----------------------|----------------|------------------------------------------------|
 | Minimax amélioré      | 22             | 13.03                                          |
-| Alpha-Beta            | 20             | 3.84                                           |
+| Alpha-Beta            | 20             | 0.28                                           |
 | Recherche Monte-carlo | 40             | 0.74                                           |
 
 Puisque les algorithmes minimax et Alpha-Beta ne contiennent pas d'aléatoire, si
