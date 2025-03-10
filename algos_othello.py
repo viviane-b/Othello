@@ -21,7 +21,7 @@ quadrant4 = np.flip(quadrant2, axis=1)
 CELL_VALUES = np.concatenate((np.concatenate([quadrant1, quadrant2], axis=0), np.concatenate([quadrant3, quadrant4], axis=0)), axis=1)
 
 
-# 1.Minimax amélioré
+#------ 1 . MINIMAX AMÉLIORÉ --------
 def evaluate_board_improved(game, player):
     # combinaison linéaire des heuristiques
     board = game.board
@@ -85,9 +85,10 @@ def improved_minimax_ai(board, player):
     print(duration)
     return best_move
 
-# 2.Alpha-Beta Pruning
+#------ 2 . ALPHA-BETA PRUNING --------
 
-# https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
+# SOURCE: https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
+# SOURCE HEURISTIQUES (PSEUDOCODE) : https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/miniproject1_vaishu_muthu/Paper/Final_Paper.pdf
 
 DEPTH_ALPHA_BETA = 7
 
@@ -103,14 +104,11 @@ def a_b_eval(game, player):
         actual_m = 100 * (p_mobility - o_mobility) / (p_mobility + o_mobility)
     return actual_m + difference_pieces(board) + cell_values(game, player) + nb_possible_moves(game, player)
 
-#  Potential mobility is calculated by
-# counting the number of empty spaces next to at
-# least one of the opponent’s coin
+#  Potential mobility calculations
 def count_empty_spaces(board, player):
     p_value = player
     o_value = -player
 
-    # Define 8 possible directions (adjacent cells)
     directions = [(-1, -1), (-1, 0), (-1, 1),
                   (0, -1), (0, 1),
                   (1, -1), (1, 0), (1, 1)]
@@ -129,17 +127,17 @@ def count_empty_spaces(board, player):
     return potential_m
 
 def a_b_eval2(game, player):
-    # evaluate by adding mobility to combi lin
+    # evaluate by adding potential mobility to combi lin
     board = game.board
 
     p_mobility = count_empty_spaces(board, player)
     o_mobility = count_empty_spaces(board, -player)
-    actual_m = 0
+    potential_m = 0
     if (p_mobility + o_mobility) != 0:
-        actual_m = 100 * (p_mobility - o_mobility) / (p_mobility + o_mobility)
-    return actual_m + difference_pieces(board) + cell_values(game, player) + nb_possible_moves(game, player)
+        potential_m = 100 * (p_mobility - o_mobility) / (p_mobility + o_mobility)
+    return potential_m + difference_pieces(board) + cell_values(game, player) + nb_possible_moves(game, player)
 
-# https://www.geeksforgeeks.org/minimax-algorithm-in-game-theory-set-4-alpha-beta-pruning/
+# ALPHA-BETA AVEC KILLER HEURISTIC ET ORIGINAL EVAL FUNCTION
 def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_moves):
 
     game = oth.Othello()
@@ -217,6 +215,7 @@ def alpha_beta_pruning(board, depth, alpha, beta, maximizing, player, killer_mov
 
         return best, best_move
 
+# ALPHA-BETA SANS KILLER HEURISTIC, AVEC MOBILITÉ (potentielle) DANS L'ÉVALUATION
 def alpha_beta_pruning_no_killer(board, depth, alpha, beta, maximizing, player):
 
     game = oth.Othello()
@@ -252,9 +251,7 @@ def alpha_beta_pruning_no_killer(board, depth, alpha, beta, maximizing, player):
 
         return best, best_move
 
-
-# Paste on the platform
-
+# Contenu de "user_ai"
 def alpha_beta_ai(board, player):
     start = time.time()
     killer_moves = dict()
@@ -267,6 +264,7 @@ def alpha_beta_ai(board, player):
     print(duration)
     return best_move
 
+# Contenu de "user_ai"
 def alpha_beta_ai_2(board, player):
     start = time.time()
     _, best_move = alpha_beta_pruning_no_killer(board, DEPTH_ALPHA_BETA, float("-inf"), float("inf"), True, player)
@@ -276,8 +274,9 @@ def alpha_beta_ai_2(board, player):
     print(duration)
     return best_move
 
-LIMIT_EXPLORATIONS = 1000
+# ---- 3 . MCTS ----
 
+LIMIT_EXPLORATIONS = 1000
 
 # https://gist.github.com/qpwo/c538c6f73727e254fdc7fab81024f6e1
 # https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
@@ -429,6 +428,7 @@ def monte_carlo_play(board, player):
     print(duration)
     return best_move
 
+# ----- USER_AI ------
 
 def user_ai(board, player):
     return alpha_beta_ai(board, player)
